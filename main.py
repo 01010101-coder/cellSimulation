@@ -1,6 +1,5 @@
 import pygame
 from random import randint
-from math import sqrt
 pygame.init()
 
 WIDTH, HEIGHT = 700, 700
@@ -56,7 +55,7 @@ class Cell:
         for name in list_food:
             # print(name.x, cell.x)
             hypotenous = 100 - (name.x - cell.x)** 2
-            if hypotenous >= 0 and sqrt(hypotenous) >= abs(name.y - cell.y):
+            if  hypotenous >= (name.y - cell.y) ** 2:
                 self.hungry = self.hungry + 20
                 list_food.remove(name)
                 return 1
