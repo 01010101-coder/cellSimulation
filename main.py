@@ -1,5 +1,6 @@
 import pygame
 from random import randint
+from math import sqrt
 pygame.init()
 
 WIDTH, HEIGHT = 700, 700
@@ -23,7 +24,7 @@ class Food:
         self.x = x
         self.y = y
 
-    def draw(self, win):
+    def appear(self, win):
         pygame.draw.circle(win, BLUE, (self.x, self.y), 2)
 
     def update(self):
@@ -48,6 +49,18 @@ class Cell:
         self.hungry = self.hungry + randint(-30, -10)
         if self.hungry <= 0:
             list.remove(name)
+        if self.hungry >= 70:
+            list.append(Cell(self.x, self.y, 50))
+            self.hungry = self.hungry - 50
+    def eat(self, cell, list_food):
+        for name in list_food:
+            # print(name.x, cell.x)
+            hypotenous = 100 - (name.x - cell.x)** 2
+            if hypotenous >= 0 and sqrt(hypotenous) >= abs(name.y - cell.y):
+                self.hungry = self.hungry + 20
+                list_food.remove(name)
+                return 1
+
 
 
 def main():
@@ -59,6 +72,10 @@ def main():
 
     cells = []
     cells.append(Cell(350, 350, 100))
+
+    food = []
+
+    i = 0
 
     while run:
         time = time + 1
@@ -72,23 +89,27 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
 
+        if len(food) < 150:
+            imp_number = randint(150, 490)
+            imp2_number = randint(150, 490)
+            food.append(Food(imp_number, imp2_number))
 
-        if seconds%1 == 0 and time%60 == 0:
-            imp_number = len(cells)
-            imp2_number = 0
-            for name in cells:
-                if imp2_number == imp_number:
-                    break
-                else:
-                    cells.append(Cell(name.x, name.y, 100))
-                imp2_number = imp2_number + 1
+
+        if len(cells) == 0:
+            cells.append(Cell(350, 350, 100))
+
         for name in cells:
             name.move(WIN)
+            name.eat(name, food)
+            if len(food) < 150:
+                i = i + 1
             if seconds % 2 == 0 and time % 60 == 0:
                 name.status_update(cells, name)
 
+        for name in food:
+            name.appear(WIN)
 
-        WIN.blit(FONT.render(f'{seconds} seconds, {len(cells)} creatures', 1, (0, 0, 0)), (50, 650))
+        WIN.blit(FONT.render(f'{seconds} seconds, {len(cells)} creatures, {len(food)} food, {i-179}', 1, (0, 0, 0)), (50, 650))
         pygame.display.update()
 
     pygame.quit()
