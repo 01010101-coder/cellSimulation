@@ -1,5 +1,5 @@
 import pygame
-from random import randint
+from random import randint, random
 pygame.init()
 
 WIDTH, HEIGHT = 700, 700
@@ -12,11 +12,42 @@ FONT = pygame.font.SysFont('conicsans', 16)
 BG_COLOR = (255, 255, 255)
 BLUE = (0, 0, 255)
 RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 
 random = 0
 cell_number = 0
 
+def borders_check(x, y):
+    global x_dif, y_dif
+    if x <= 20:
+        x_dif = x + 10
+    elif y <= 20:
+        y_dif = y + 10
+    elif x >= 680:
+        x_dif = x - 10
+    elif y >= 680:
+        y_dif = y - 10
 
+def find_way(x, y, speed, food_list):
+    global x_dif, y_dif
+    closest = [0, 9999999]
+    for name in food_list:
+        distance = (name.x - x) ** 2 + (name.y - y) ** 2
+        if closest[1] > distance:
+            closest[1] = distance
+            closest[0] = name
+    if x < closest[0].x:
+        x_dif = x + speed
+    elif x > closest[0].x:
+        x_dif = x - speed
+    else:
+        x_dif = x + 0
+    if y < closest[0].y:
+        y_dif = y + speed
+    elif y > closest[0].y:
+        y_dif = y - speed
+    else:
+        y_dif = y + 0
 
 class Food:
     def __init__(self, x, y):
@@ -30,57 +61,45 @@ class Food:
         pass
 
 class Cell:
-    def __init__(self, x, y, hungry):
+    def __init__(self, x, y, hungry, speed, color):
         self.x = x
         self.y = y
         self.hungry = hungry
-        self.speed = 4
+        self.speed = speed
+
+        self.color = color
 
 
     def move(self, win, food_list):
-
         # Поиск пути к ближайшей еде
-        closest = [0, 9999999]
-        for name in food_list:
-            distance = (name.x - self.x) ** 2 + (name.y - self.y) ** 2
-            if closest[1] > distance:
-                closest[1] = distance
-                closest[0] = name
-        if self.x < closest[0].x:
-            self.x = self.x + self.speed
-        elif self.x > closest[0].x:
-            self.x = self.x - self.speed
-        else:
-            self.x = self.x + 0
-        if self.y < closest[0].y:
-            self.y = self.y + self.speed
-        elif self.y > closest[0].y:
-            self.y = self.y - self.speed
-        else:
-            self.y = self.y + 0
-
+        find_way(self.x, self.y, self.speed, food_list)
+        self.x = x_dif
+        self.y = y_dif
         # Проверка на границы
-        if self.x <= 20:
-            self.x = self.x + 10
-        elif self.y <= 20:
-            self.y = self.y + 10
-        elif self.x >= 680:
-            self.x = self.x - 10
-        elif self.y >= 680:
-            self.y = self.y - 10
+        borders_check(self.x, self.y)
+        self.x = x_dif
+        self.y = y_dif
 
         # Прорисовка клетки
-        pygame.draw.circle(win, RED, (self.x, self.y), 10)
+        pygame.draw.circle(win, self.color, (self.x, self.y), 10)
         hungry_text = FONT.render(f'{self.hungry}', 1, BLUE)
         win.blit(hungry_text, (self.x+8, self.y+8))
 
     def status_update(self, list, name):
-        self.hungry = self.hungry + randint(-30, -10)
+        self.hungry = self.hungry + randint(-2, -1)
         if self.hungry <= 0:
             list.remove(name)
         if self.hungry >= 70:
-            list.append(Cell(self.x, self.y, 50))
-            self.hungry = self.hungry - 50
+            if randint(0, 100) > 50:
+                if randint(0, 100) > 60:
+                    list.append(Cell(self.x, self.y, 50, self.speed, self.color))
+                    self.hungry = self.hungry - 50
+                else:
+                    list.append(Cell(self.x, self.y, 50, 4, RED))
+                    self.hungry = self.hungry - 50
+            elif randint(0, 100) < 50:
+                self.color = GREEN
+                self.speed = 7
 
     def eat(self, cell, list_food):
         for name in list_food:
@@ -101,7 +120,13 @@ def main():
     seconds = 0
 
     cells = []
-    cells.append(Cell(350, 350, 100))
+    cells.append(Cell(350, 350, 100, 4, RED))
+    cells.append(Cell(350, 350, 100, 4, RED))
+    cells.append(Cell(350, 350, 100, 4, RED))
+    cells.append(Cell(350, 350, 100, 4, RED))
+    cells.append(Cell(350, 350, 100, 4, RED))
+    cells.append(Cell(350, 350, 100, 4, RED))
+
 
     food = []
 
@@ -112,34 +137,34 @@ def main():
         if time%60 == 0:
             seconds = seconds + 1
 
-        clock.tick(180)
+        clock.tick(60)
         WIN.fill(BG_COLOR)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 run = False
 
-        if len(food) < 50:
+        if len(food) < 150:
             imp_number = randint(40, 660)
             imp2_number = randint(40, 660)
             food.append(Food(imp_number, imp2_number))
 
 
         if len(cells) == 0:
-            cells.append(Cell(350, 350, 100))
+            cells.append(Cell(350, 350, 100, 4, RED))
 
         for name in cells:
             name.move(WIN, food)
             name.eat(name, food)
-            if len(food) < 50:
+            name.status_update(cells, name)
+            if len(food) < 150:
                 i = i + 1
-            if seconds % 2 == 0 and time % 60 == 0:
-                name.status_update(cells, name)
+
 
         for name in food:
             name.appear(WIN)
 
-        WIN.blit(FONT.render(f'{seconds} seconds, {len(cells)} creatures, {len(food)} food, {i-49}', 1, (0, 0, 0)), (50, 650))
+        WIN.blit(FONT.render(f'{seconds} seconds, {len(cells)} creatures, {len(food)} food, {i-149}', 1, (0, 0, 0)), (50, 650))
         pygame.display.update()
 
     pygame.quit()
