@@ -11,11 +11,29 @@ FONT = pygame.font.SysFont('conicsans', 16)
 
 BG_COLOR = (255, 255, 255)
 BLUE = (0, 0, 255)
-RED = (255, 0, 0)
+GREY = (255, 10, 10)
 GREEN = (0, 255, 0)
 
-random = 0
+randomNum = 0
 cell_number = 0
+
+
+
+def color_check(color):
+    listColorNextGeneration = []
+    for i in range(2):
+        r = color[i] + randint(1, 10)
+        if r > 255:
+            listColorNextGeneration.append(r - 255)
+            print(listColorNextGeneration)
+        elif r < 0:
+            listColorNextGeneration.append(255 - r)
+            print(listColorNextGeneration)
+        else:
+            listColorNextGeneration.append(r)
+
+    print(listColorNextGeneration)
+    return (listColorNextGeneration[0], listColorNextGeneration[1], 150)
 
 def borders_check(x, y):
     global x_dif, y_dif
@@ -66,8 +84,13 @@ class Cell:
         self.y = y
         self.hungry = hungry
         self.speed = speed
-
         self.color = color
+
+        self.speedNextGeneration = speed
+        self.colorNextGeneration = color
+        self.mutation = False
+        print(self.color)
+        print(self.colorNextGeneration)
 
 
     def move(self, win, food_list):
@@ -79,6 +102,8 @@ class Cell:
         borders_check(self.x, self.y)
         self.x = x_dif
         self.y = y_dif
+        print(self.color)
+        print(self.colorNextGeneration)
 
         # Прорисовка клетки
         pygame.draw.circle(win, self.color, (self.x, self.y), 10)
@@ -86,25 +111,25 @@ class Cell:
         win.blit(hungry_text, (self.x+8, self.y+8))
 
     def status_update(self, list, name):
-        self.hungry = self.hungry + randint(-2, -1)
+        self.hungry = self.hungry - 1.5
         if self.hungry <= 0:
             list.remove(name)
         if self.hungry >= 70:
-            if randint(0, 100) > 50:
-                if randint(0, 100) > 60:
-                    list.append(Cell(self.x, self.y, 50, self.speed, self.color))
-                    self.hungry = self.hungry - 50
-                else:
-                    list.append(Cell(self.x, self.y, 50, 4, RED))
-                    self.hungry = self.hungry - 50
-            elif randint(0, 100) < 50:
-                self.color = GREEN
-                self.speed = 7
+            randomNum = random()
+            if randomNum > 0.5:
+                list.append(Cell(self.x, self.y, 50, self.speedNextGeneration, self.colorNextGeneration))
+                self.hungry = self.hungry - 40
+            elif randomNum < 0.2 and self.mutation == False:
+                self.speedNextGeneration = self.speedNextGeneration + 0.1
+                self.colorNextGeneration = color_check(self.color)
+                self.hungry = self.hungry - 20
+                self.mutation = True
+
 
     def eat(self, cell, list_food):
         for name in list_food:
             # print(name.x, cell.x)
-            hypotenous = 100 - (name.x - cell.x)** 2
+            hypotenous = 100 - (name.x - cell.x) ** 2
             if  hypotenous >= (name.y - cell.y) ** 2:
                 self.hungry = self.hungry + 20
                 list_food.remove(name)
@@ -120,14 +145,6 @@ def main():
     seconds = 0
 
     cells = []
-    cells.append(Cell(350, 350, 100, 4, RED))
-    cells.append(Cell(350, 350, 100, 4, RED))
-    cells.append(Cell(350, 350, 100, 4, RED))
-    cells.append(Cell(350, 350, 100, 4, RED))
-    cells.append(Cell(350, 350, 100, 4, RED))
-    cells.append(Cell(350, 350, 100, 4, RED))
-
-
     food = []
 
     i = 0
@@ -144,27 +161,27 @@ def main():
             if event.type == pygame.QUIT:
                 run = False
 
-        if len(food) < 150:
+        if len(food) < 200:
             imp_number = randint(40, 660)
             imp2_number = randint(40, 660)
             food.append(Food(imp_number, imp2_number))
 
 
         if len(cells) == 0:
-            cells.append(Cell(350, 350, 100, 4, RED))
+            cells.append(Cell(350, 350, 100, 2, GREY))
 
         for name in cells:
             name.move(WIN, food)
             name.eat(name, food)
             name.status_update(cells, name)
-            if len(food) < 150:
+            if len(food) < 200:
                 i = i + 1
 
 
         for name in food:
             name.appear(WIN)
 
-        WIN.blit(FONT.render(f'{seconds} seconds, {len(cells)} creatures, {len(food)} food, {i-149}', 1, (0, 0, 0)), (50, 650))
+        WIN.blit(FONT.render(f'{seconds} seconds, {len(cells)} creatures, {len(food)} food, {i-199}', 1, (0, 0, 0)), (50, 650))
         pygame.display.update()
 
     pygame.quit()
