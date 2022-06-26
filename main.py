@@ -2,7 +2,7 @@ import pygame
 from random import randint, random
 pygame.init()
 
-WIDTH, HEIGHT = 700, 700
+WIDTH, HEIGHT = 1200, 600
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption('Darvin logic')
 
@@ -11,11 +11,13 @@ FONT = pygame.font.SysFont('conicsans', 16)
 
 BG_COLOR = (255, 255, 255)
 BLUE = (0, 0, 255)
-GREY = (255, 10, 10)
+GREY = (255, 10, 150)
 GREEN = (0, 255, 0)
 
 randomNum = 0
 cell_number = 0
+
+food_number = 0
 
 
 
@@ -25,14 +27,11 @@ def color_check(color):
         r = color[i] + randint(1, 10)
         if r > 255:
             listColorNextGeneration.append(r - 255)
-            print(listColorNextGeneration)
         elif r < 0:
             listColorNextGeneration.append(255 - r)
-            print(listColorNextGeneration)
         else:
             listColorNextGeneration.append(r)
 
-    print(listColorNextGeneration)
     return (listColorNextGeneration[0], listColorNextGeneration[1], 150)
 
 def borders_check(x, y):
@@ -41,9 +40,9 @@ def borders_check(x, y):
         x_dif = x + 10
     elif y <= 20:
         y_dif = y + 10
-    elif x >= 680:
+    elif x >= WIDTH-20:
         x_dif = x - 10
-    elif y >= 680:
+    elif y >= HEIGHT-20:
         y_dif = y - 10
 
 def find_way(x, y, speed, food_list):
@@ -89,8 +88,6 @@ class Cell:
         self.speedNextGeneration = speed
         self.colorNextGeneration = color
         self.mutation = False
-        print(self.color)
-        print(self.colorNextGeneration)
 
 
     def move(self, win, food_list):
@@ -102,17 +99,15 @@ class Cell:
         borders_check(self.x, self.y)
         self.x = x_dif
         self.y = y_dif
-        print(self.color)
-        print(self.colorNextGeneration)
-
         # Прорисовка клетки
         pygame.draw.circle(win, self.color, (self.x, self.y), 10)
-        hungry_text = FONT.render(f'{self.hungry}', 1, BLUE)
+        hungry_text = FONT.render(f'{self.hungry}/{round(self.speed, 1)}', 1, BLUE)
         win.blit(hungry_text, (self.x+8, self.y+8))
 
-    def status_update(self, list, name):
+    def status_update(self, list, name, list2):
         self.hungry = self.hungry - 1.5
         if self.hungry <= 0:
+            list2.append(Food(self.x, self.y))
             list.remove(name)
         if self.hungry >= 70:
             randomNum = random()
@@ -139,6 +134,7 @@ class Cell:
 
 def main():
     run = True
+    pause = False
     clock = pygame.time.Clock()
 
     time = 0
@@ -149,40 +145,63 @@ def main():
 
     i = 0
 
+    food_number = 500
+
     while run:
-        time = time + 1
-        if time%60 == 0:
-            seconds = seconds + 1
+        while not pause and run:
+            time = time + 1
+            if time%60 == 0:
+                seconds = seconds + 1
 
-        clock.tick(60)
-        WIN.fill(BG_COLOR)
+            clock.tick(60)
+            WIN.fill(BG_COLOR)
 
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run = False
-
-        if len(food) < 200:
-            imp_number = randint(40, 660)
-            imp2_number = randint(40, 660)
-            food.append(Food(imp_number, imp2_number))
-
-
-        if len(cells) == 0:
-            cells.append(Cell(350, 350, 100, 2, GREY))
-
-        for name in cells:
-            name.move(WIN, food)
-            name.eat(name, food)
-            name.status_update(cells, name)
-            if len(food) < 200:
-                i = i + 1
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        pause = True
+                    if event.key == pygame.K_ESCAPE:
+                        cells.append(Cell(WIDTH/2, HEIGHT/2, 100, 2, GREY))
 
 
-        for name in food:
-            name.appear(WIN)
+            if len(food) < food_number:
+                imp_number = randint(40, WIDTH-40)
+                imp2_number = randint(40, HEIGHT-40)
+                food.append(Food(imp_number, imp2_number))
 
-        WIN.blit(FONT.render(f'{seconds} seconds, {len(cells)} creatures, {len(food)} food, {i-199}', 1, (0, 0, 0)), (50, 650))
-        pygame.display.update()
+            for name in cells:
+                name.move(WIN, food)
+                name.eat(name, food)
+                name.status_update(cells, name, food)
+
+
+            for name in food:
+                name.appear(WIN)
+
+            WIN.blit(FONT.render(f'{seconds} seconds, {len(cells)} creatures, {len(food)} food', 1, (0, 0, 0)), (30, HEIGHT-50))
+            pygame.display.update()
+
+
+
+
+        while pause and run:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run = False
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        pause = False
+                    if event.key == pygame.K_ESCAPE:
+                        cells.append(Cell(WIDTH/2, HEIGHT/2, 100, 2, GREY))
+
+            pygame.display.update()
+
+            for name in cells:
+                pygame.draw.circle(WIN, name.color, (name.x, name.y), 10)
+
+
 
     pygame.quit()
 
