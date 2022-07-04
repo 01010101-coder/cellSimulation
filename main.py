@@ -21,18 +21,25 @@ food_number = 0
 
 
 
-def color_check(color):
-    listColorNextGeneration = []
-    for i in range(2):
-        r = color[i] + randint(1, 10)
+def color_check(color, firstWay, secondWay):
+    if firstWay:
+        r = color[1] + randint(1, 10)
         if r > 255:
-            listColorNextGeneration.append(r - 255)
+            r = r - 255
         elif r < 0:
-            listColorNextGeneration.append(255 - r)
+            r = 255 - r
         else:
-            listColorNextGeneration.append(r)
-
-    return (listColorNextGeneration[0], listColorNextGeneration[1], 150)
+            r = r
+        return (150, r, 150)
+    elif secondWay:
+        r = color[1] + randint(1, 10)
+        if r > 255:
+            r = r - 255
+        elif r < 0:
+            r = 255 - r
+        else:
+            r = r
+        return (r, 150, 150)
 
 def borders_check(x, y):
     global x_dif, y_dif
@@ -78,13 +85,30 @@ class Food:
         pass
 
 class Cell:
-    def __init__(self, x, y, hungry, speed, color):
+    def __init__(self, x, y, hungry, health, speed, color, evolutionWay):
         self.x = x
         self.y = y
         self.hungry = hungry
+        self.health = health
         self.speed = speed
         self.color = color
 
+
+
+        if evolutionWay == 0:
+            self.speedEvolutionWay = False
+            self.healthEvolutionWay = False
+        elif evolutionWay == 1:
+            self.speedEvolutionWay = True
+            self.healthEvolutionWay = False
+        elif evolutionWay == 2:
+            self.healthEvolutionWay = True
+            self.speedEvolutionWay = False
+
+        self.way = evolutionWay
+
+
+        self.healthNextGeneration = health
         self.speedNextGeneration = speed
         self.colorNextGeneration = color
         self.mutation = False
@@ -101,24 +125,41 @@ class Cell:
         self.y = y_dif
         # Прорисовка клетки
         pygame.draw.circle(win, self.color, (self.x, self.y), 10)
-        hungry_text = FONT.render(f'{self.hungry}/{round(self.speed, 1)}', 1, BLUE)
+        hungry_text = FONT.render(f'{self.health}/{round(self.speed, 1)}', 1, BLUE)
+        debug_text = FONT.render(f'{self.healthEvolutionWay, self.speedEvolutionWay}/{round(self.speed, 1)}', 1, BLUE)
         win.blit(hungry_text, (self.x+8, self.y+8))
 
     def status_update(self, list, name, list2):
         self.hungry = self.hungry - 1.5
         if self.hungry <= 0:
-            list2.append(Food(self.x, self.y))
-            list.remove(name)
+            self.health = self.health - 1
+            if self.health <= 0:
+                list2.append(Food(self.x, self.y))
+                list.remove(name)
         if self.hungry >= 70:
             randomNum = random()
             if randomNum > 0.5:
-                list.append(Cell(self.x, self.y, 50, self.speedNextGeneration, self.colorNextGeneration))
+                list.append(Cell(self.x, self.y, 50, self.healthNextGeneration, self.speedNextGeneration, self.colorNextGeneration, self.way))
                 self.hungry = self.hungry - 40
             elif randomNum < 0.2 and self.mutation == False:
-                self.speedNextGeneration = self.speedNextGeneration + 0.1
-                self.colorNextGeneration = color_check(self.color)
-                self.hungry = self.hungry - 20
-                self.mutation = True
+                if self.speedEvolutionWay:
+                    self.speedNextGeneration = self.speedNextGeneration + 0.1
+                    self.colorNextGeneration = color_check(self.color, self.speedEvolutionWay, self.healthEvolutionWay)
+                    self.hungry = self.hungry - 40
+                    self.mutation = True
+                    self.way = 1
+                elif self.healthEvolutionWay:
+                    self.healthNextGeneration = self.healthNextGeneration + 5
+                    self.colorNextGeneration = color_check(self.color, self.speedEvolutionWay, self.healthEvolutionWay)
+                    self.hungry = self.hungry - 40
+                    self.mutation = True
+                    self.way = 2
+                else:
+                    randomNum = random()
+                    if randomNum >= 0.7:
+                        self.healthEvolutionWay = True
+                    else:
+                        self.speedEvolutionWay = True
 
 
     def eat(self, cell, list_food):
@@ -149,11 +190,14 @@ def main():
 
     while run:
         while not pause and run:
+            fps = 1000
+
             time = time + 1
             if time%60 == 0:
                 seconds = seconds + 1
 
-            clock.tick(60)
+            clock.tick(fps)
+
             WIN.fill(BG_COLOR)
 
             for event in pygame.event.get():
@@ -163,7 +207,7 @@ def main():
                     if event.key == pygame.K_SPACE:
                         pause = True
                     if event.key == pygame.K_ESCAPE:
-                        cells.append(Cell(WIDTH/2, HEIGHT/2, 100, 2, GREY))
+                        cells.append(Cell(WIDTH/2, HEIGHT/2, 100, 100, 2, GREY, 0))
 
 
             if len(food) < food_number:
